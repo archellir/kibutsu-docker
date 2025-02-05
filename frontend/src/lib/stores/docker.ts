@@ -1,24 +1,19 @@
 import { writable, derived } from 'svelte/store';
 import type { Container, Image, ComposeProject, SystemInfo, DockerError } from '../types/docker';
+import { DockerClient } from '../api/client';
 
-// Utility function for WebSocket connection
-const createWebSocketConnection = () => {
-  const ws = new WebSocket('ws://localhost:3000/docker');
-  
-  ws.onclose = () => {
-    setTimeout(createWebSocketConnection, 5000); // Reconnect after 5s
-  };
-  
-  return ws;
+const client = new DockerClient();
+
+// Create base store type
+type StoreState<T> = {
+  data: T;
+  loading: boolean;
+  lastUpdated: Date | null;
 };
 
 // Create base stores with loading states
 const createLoadingStore = <T>() => {
-  const { subscribe, set: baseSet, update } = writable<{
-    data: T;
-    loading: boolean;
-    lastUpdated: Date | null;
-  }>({
+  const { subscribe, set: baseSet, update } = writable<StoreState<T>>({
     data: [] as unknown as T,
     loading: false,
     lastUpdated: null
@@ -47,6 +42,7 @@ const createLoadingStore = <T>() => {
           code: 'FETCH_ERROR',
           timestamp: new Date()
         });
+        update(store => ({ ...store, loading: false }));
       }
     }
   };
@@ -69,46 +65,71 @@ export const errorStore = (() => {
   };
 })();
 
+// WebSocket connection management
+function createWebSocketConnection() {
+  const ws = new WebSocket('ws://localhost:3000/docker');
+  
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    handleWebSocketMessage(data);
+  };
+  
+  ws.onclose = () => {
+    setTimeout(createWebSocketConnection, 5000);
+  };
+
+  ws.onerror = () => {
+    errorStore.add({
+      message: 'WebSocket connection error',
+      code: 'WS_ERROR',
+      timestamp: new Date()
+    });
+  };
+  
+  return ws;
+}
+
+// WebSocket message handler
+function handleWebSocketMessage(data: any) {
+  switch (data.type) {
+    case 'container':
+      containersStore.refresh(() => client.getContainers());
+      break;
+    case 'image':
+      imagesStore.refresh(() => client.getImages());
+      break;
+    case 'compose':
+      composeStore.refresh(() => client.getComposeProjects());
+      break;
+    case 'system':
+      systemStore.refresh(() => client.getSystemInfo());
+      break;
+  }
+}
+
 // Auto-refresh functionality
 const setupAutoRefresh = () => {
   const refreshInterval = 30000; // 30 seconds
 
   const refresh = async () => {
     await Promise.all([
-      containersStore.refresh(fetchContainers),
-      imagesStore.refresh(fetchImages),
-      composeStore.refresh(fetchComposeProjects),
-      systemStore.refresh(fetchSystemInfo)
+      containersStore.refresh(() => client.getContainers()),
+      imagesStore.refresh(() => client.getImages()),
+      composeStore.refresh(() => client.getComposeProjects()),
+      systemStore.refresh(() => client.getSystemInfo())
     ]);
   };
 
   // Initial load
   refresh();
 
-  // Set up interval
-  const interval = setInterval(refresh, refreshInterval);
+  // Set up interval for system metrics
+  const interval = setInterval(() => {
+    systemStore.refresh(() => client.getSystemInfo());
+  }, refreshInterval);
 
-  // Set up WebSocket listeners
+  // Set up WebSocket
   const ws = createWebSocketConnection();
-  
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    
-    switch (data.type) {
-      case 'container':
-        containersStore.refresh(fetchContainers);
-        break;
-      case 'image':
-        imagesStore.refresh(fetchImages);
-        break;
-      case 'compose':
-        composeStore.refresh(fetchComposeProjects);
-        break;
-      case 'system':
-        systemStore.refresh(fetchSystemInfo);
-        break;
-    }
-  };
 
   // Cleanup function
   return () => {
@@ -117,28 +138,7 @@ const setupAutoRefresh = () => {
   };
 };
 
-// Example fetch functions (implement these based on your API)
-const fetchContainers = async (): Promise<Container[]> => {
-  const response = await fetch('/api/containers');
-  return response.json();
-};
-
-const fetchImages = async (): Promise<Image[]> => {
-  const response = await fetch('/api/images');
-  return response.json();
-};
-
-const fetchComposeProjects = async (): Promise<ComposeProject[]> => {
-  const response = await fetch('/api/compose');
-  return response.json();
-};
-
-const fetchSystemInfo = async (): Promise<SystemInfo> => {
-  const response = await fetch('/api/system');
-  return response.json();
-};
-
-// Initialize auto-refresh
+// Initialize auto-refresh if in browser
 if (typeof window !== 'undefined') {
   setupAutoRefresh();
 } 
