@@ -10,8 +10,11 @@ export default defineConfig({
 
 	server: {
 		proxy: {
-			'/api': 'http://localhost:8080',
-			'/docker': {
+			'/api': {
+				target: 'http://localhost:8080',
+				changeOrigin: true
+			},
+			'/api/docker': {
 				target: 'ws://localhost:8080',
 				ws: true
 			}

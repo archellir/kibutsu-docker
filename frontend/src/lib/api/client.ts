@@ -1,7 +1,7 @@
 import type { Container, Image, ComposeProject, SystemInfo } from '../types/docker';
 
 const API_BASE = '/api';
-const WS_BASE = 'ws://localhost:3000';
+const WS_BASE = `ws://${window.location.host}`;
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {

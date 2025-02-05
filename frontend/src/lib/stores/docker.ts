@@ -67,7 +67,7 @@ export const errorStore = (() => {
 
 // WebSocket connection management
 function createWebSocketConnection() {
-  const ws = new WebSocket('ws://localhost:3000/docker');
+  const ws = new WebSocket(`ws://${window.location.host}/api/docker`);
   
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data);
