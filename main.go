@@ -15,7 +15,7 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/google/uuid"
 
-	"kibutsuapi/api/handlers"
+	"kibutsu/api/handlers"
 )
 
 type HealthResponse struct {
@@ -32,6 +32,10 @@ type responseWriter struct {
 	status int
 }
 
+type contextKey string
+
+const requestIDKey contextKey = "requestID"
+
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.status = code
 	rw.ResponseWriter.WriteHeader(code)
@@ -43,7 +47,7 @@ func requestIDMiddleware(next http.Handler) http.Handler {
 		if requestID == "" {
 			requestID = uuid.New().String()
 		}
-		ctx := context.WithValue(r.Context(), "requestID", requestID)
+		ctx := context.WithValue(r.Context(), requestIDKey, requestID)
 		w.Header().Set("X-Request-ID", requestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -58,7 +62,7 @@ func loggingMiddleware(next http.Handler) http.Handler {
 
 		log.Printf(
 			"[%s] %s %s %d %s",
-			r.Context().Value("requestID"),
+			r.Context().Value(requestIDKey),
 			r.Method,
 			r.URL.Path,
 			rw.status,
@@ -208,6 +212,15 @@ func main() {
 
 	// Mount API router under /api
 	mux.Handle("/api/", http.StripPrefix("/api", apiRouter))
+
+	// Serve static files
+	fileServer := http.FileServer(GetFileSystem())
+	mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" && !strings.HasPrefix(r.URL.Path, "/assets/") {
+			r.URL.Path = "/"
+		}
+		fileServer.ServeHTTP(w, r)
+	}))
 
 	// Apply middleware chain
 	handler := corsMiddleware(

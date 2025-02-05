@@ -14,7 +14,7 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 
-	apitypes "kibutsuapi/api/types"
+	apitypes "kibutsu/api/types"
 )
 
 type ContainerResponse struct {

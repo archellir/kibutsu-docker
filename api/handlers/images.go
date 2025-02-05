@@ -15,7 +15,7 @@ import (
 	"github.com/docker/docker/client"
 	"golang.org/x/net/websocket"
 
-	apitypes "kibutsuapi/api/types"
+	apitypes "kibutsu/api/types"
 )
 
 type ImageHandler struct {

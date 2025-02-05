@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	apitypes "kibutsuapi/api/types"
+	apitypes "kibutsu/api/types"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"

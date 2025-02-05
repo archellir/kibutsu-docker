@@ -13,7 +13,7 @@ import (
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 
-	apitypes "kibutsuapi/api/types"
+	apitypes "kibutsu/api/types"
 )
 
 // ImageManager handles Docker image operations

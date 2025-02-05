@@ -16,8 +16,8 @@ import (
 	"github.com/docker/docker/client"
 	"gopkg.in/yaml.v3"
 
-	apitypes "kibutsuapi/api/types"
-	"kibutsuapi/docker"
+	apitypes "kibutsu/api/types"
+	"kibutsu/docker"
 )
 
 type ComposeHandler struct {
