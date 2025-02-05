@@ -2,12 +2,16 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-[data-theme='dark'] {
-  @apply dark;
-}
-
 @layer base {
-  body {
-    @apply bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  :root {
+    @apply light;
+  }
+
+  .dark {
+    @apply bg-gray-900 text-gray-100;
+  }
+
+  .light {
+    @apply bg-white text-gray-900;
   }
 }

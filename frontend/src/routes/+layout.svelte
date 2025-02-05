@@ -1,12 +1,24 @@
 <script lang="ts">
 	import '../app.css';
+	import 'xterm/css/xterm.css';
 	import Navbar from '$lib/components/layout/Navbar.svelte';
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
+	import { theme } from '$lib/stores/theme';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
+
+	onMount(() => {
+		// Apply theme class to HTML element
+		$: if ($theme === 'dark') {
+			document.documentElement.classList.add('dark');
+		} else {
+			document.documentElement.classList.remove('dark');
+		}
+	});
 </script>
 
-<div class="min-h-screen dark:bg-gray-900">
+<div class="min-h-screen">
 	<Navbar />
 	<div class="flex">
 		<Sidebar />
