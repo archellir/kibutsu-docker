@@ -1,5 +1,6 @@
 import adapter from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import path from 'path';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -16,6 +17,11 @@ const config = {
 		}),
 		prerender: {
 			handleMissingId: 'ignore'
+		},
+		alias: {
+			'$lib': path.resolve('./src/lib'),
+			'$utils': path.resolve('./src/lib/utils'),
+			'$stores': path.resolve('./src/lib/stores')
 		}
 	}
 };
