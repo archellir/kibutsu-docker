@@ -9,6 +9,13 @@ class ApiError extends Error {
   }
 }
 
+interface ContainerStats {
+  cpuPercentage: number;
+  memoryUsage: number;
+  networkRx: number;
+  networkTx: number;
+}
+
 export class DockerClient {
   private token?: string;
   private ws?: WebSocket;
@@ -130,6 +137,29 @@ export class DockerClient {
   // Cleanup
   destroy(): void {
     this.ws?.close();
+  }
+
+  async getContainerStats(id: string): Promise<ContainerStats> {
+    const response = await this.fetch(`/containers/${id}/stats?stream=false`);
+    const stats = await response.json();
+    
+    // Calculate CPU percentage
+    const cpuDelta = stats.cpu_stats.cpu_usage.total_usage - stats.precpu_stats.cpu_usage.total_usage;
+    const systemDelta = stats.cpu_stats.system_cpu_usage - stats.precpu_stats.system_cpu_usage;
+    const cpuPercentage = (cpuDelta / systemDelta) * 100;
+
+    // Calculate memory usage percentage
+    const memoryUsage = (stats.memory_stats.usage / stats.memory_stats.limit) * 100;
+
+    // Get network I/O
+    const networkStats = Object.values(stats.networks)[0] as { rx_bytes: number; tx_bytes: number };
+
+    return {
+      cpuPercentage,
+      memoryUsage,
+      networkRx: networkStats.rx_bytes,
+      networkTx: networkStats.tx_bytes
+    };
   }
 }
 
