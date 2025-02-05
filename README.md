@@ -1,4 +1,4 @@
-# Kibutsu - Modern Docker Management UI
+# Kibutsu - Minimal Docker Management UI
 
 Kibutsu is a full-stack web application that provides a modern, real-time interface for managing Docker containers, images, and compose projects. Built with Go and SvelteKit, it offers a responsive and intuitive experience for Docker management.
 
@@ -166,7 +166,7 @@ The application uses WebSockets for live updates. The WebSocket server is implem
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ## Acknowledgments
 
