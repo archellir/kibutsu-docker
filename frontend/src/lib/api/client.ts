@@ -1,7 +1,14 @@
 import type { Container, Image, ComposeProject, SystemInfo } from '../types/docker';
 
 const API_BASE = '/api';
-const WS_BASE = `ws://${window.location.host}`;
+const getWsUrl = () => {
+  if (typeof window !== 'undefined') {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
+    return `${protocol}//${host}${API_BASE}`;
+  }
+  return null;
+};
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -18,10 +25,22 @@ interface ContainerStats {
 
 export class DockerClient {
   private token?: string;
-  private ws?: WebSocket;
+  private ws: WebSocket | null = null;
+  private baseUrl: string;
+  private wsUrl: string | null;
 
-  constructor(baseUrl = API_BASE, wsUrl = WS_BASE) {
-    this.setupWebSocket();
+  constructor() {
+    this.baseUrl = API_BASE;
+    this.wsUrl = null; // Initialize without WebSocket
+    
+    // Only setup WebSocket on client side
+    if (typeof window !== 'undefined') {
+      // Defer WebSocket setup to avoid SSR issues
+      setTimeout(() => {
+        this.wsUrl = getWsUrl();
+        this.setupWebSocket();
+      }, 0);
+    }
   }
 
   // Authentication methods
@@ -34,12 +53,16 @@ export class DockerClient {
   }
 
   // WebSocket handling
-  private setupWebSocket(): void {
-    this.ws = new WebSocket(`${WS_BASE}/docker`);
-    
-    this.ws.onclose = () => {
-      setTimeout(() => this.setupWebSocket(), 5000);
-    };
+  private setupWebSocket() {
+    if (!this.wsUrl || typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      this.ws = new WebSocket(`${this.wsUrl}/docker`);
+    } catch (error) {
+      console.error('Failed to create WebSocket:', error);
+    }
   }
 
   // Container operations
@@ -81,31 +104,21 @@ export class DockerClient {
 
   // System operations
   async getSystemInfo(): Promise<SystemInfo> {
-    return this.fetch('/system').then(r => r.json());
+    return this.fetch('/system/info').then(r => r.json());
   }
 
   // Base fetch method with error handling
-  private async fetch(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<Response> {
-    const url = `${API_BASE}${endpoint}`;
-    const headers = new Headers(options.headers);
-    
-    if (this.token) {
-      headers.set('Authorization', `Bearer ${this.token}`);
-    }
-
-    const response = await fetch(url, {
+  private async fetch(path: string, options: RequestInit = {}): Promise<Response> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
       ...options,
-      headers
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
 
     if (!response.ok) {
-      throw new ApiError(
-        response.status,
-        await response.text()
-      );
+      throw new ApiError(response.status, await response.text());
     }
 
     return response;
@@ -160,6 +173,10 @@ export class DockerClient {
       networkRx: networkStats.rx_bytes,
       networkTx: networkStats.tx_bytes
     };
+  }
+
+  getWebSocketUrl(path: string = '/docker'): string | null {
+    return this.wsUrl ? `${this.wsUrl}${path}` : null;
   }
 }
 

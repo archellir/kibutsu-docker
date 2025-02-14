@@ -67,26 +67,41 @@ export const errorStore = (() => {
 
 // WebSocket connection management
 function createWebSocketConnection() {
-  const ws = new WebSocket(`ws://${window.location.host}/api/docker`);
-  
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    handleWebSocketMessage(data);
-  };
-  
-  ws.onclose = () => {
-    setTimeout(createWebSocketConnection, 5000);
-  };
+  if (typeof window === 'undefined') {
+    return null;
+  }
 
-  ws.onerror = () => {
-    errorStore.add({
-      message: 'WebSocket connection error',
-      code: 'WS_ERROR',
-      timestamp: new Date()
-    });
-  };
-  
-  return ws;
+  const wsUrl = client.getWebSocketUrl();
+  if (!wsUrl) {
+    console.error('WebSocket URL is not available');
+    return null;
+  }
+
+  try {
+    const ws = new WebSocket(wsUrl);
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        handleWebSocketMessage(data);
+      } catch (error) {
+        console.error('Failed to parse WebSocket message:', error);
+      }
+    };
+    
+    ws.onclose = () => {
+      setTimeout(createWebSocketConnection, 5000);
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    return ws;
+  } catch (error) {
+    console.error('Failed to create WebSocket connection:', error);
+    return null;
+  }
 }
 
 // WebSocket message handler
@@ -134,7 +149,7 @@ const setupAutoRefresh = () => {
   // Cleanup function
   return () => {
     clearInterval(interval);
-    ws.close();
+    ws?.close();
   };
 };
 
