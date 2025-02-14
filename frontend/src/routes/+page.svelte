@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { systemStore, containersStore, diskUsageStore } from '$lib/stores/docker';
 	import { formatBytes } from '$lib/utils/format';
+	import { dockerClient } from '$lib/api/client';
 
 	$: systemInfo = $systemStore.data;
 	$: containers = $containersStore.data;
+	$: isLoading = $systemStore.loading || $containersStore.loading || $diskUsageStore.loading;
 
 	$: containerStats = containers.reduce(
 		(acc, container) => {
@@ -17,10 +19,36 @@
 	);
 
 	$: recentContainers = [...containers].sort((a, b) => b.Created - a.Created).slice(0, 5);
+
+	async function refreshData() {
+		await Promise.all([
+			systemStore.refresh(() => dockerClient.getSystemInfo()),
+			containersStore.refresh(() => dockerClient.getContainers()),
+			diskUsageStore.refresh(() => dockerClient.getDiskUsage())
+		]);
+	}
 </script>
 
 <div class="space-y-6">
-	<h1 class="text-2xl font-bold">Dashboard</h1>
+	<div class="flex items-center justify-between">
+		<h1 class="text-2xl font-bold">Dashboard</h1>
+		<div class="flex items-center space-x-4">
+			<span class="text-sm text-gray-500">
+				Last updated: {$systemStore.lastUpdated?.toLocaleTimeString() ?? 'Never'}
+			</span>
+			<button
+				class="rounded-lg bg-blue-500 px-4 py-2 text-white hover:bg-blue-600 disabled:opacity-50"
+				disabled={isLoading}
+				on:click={refreshData}
+			>
+				{#if isLoading}
+					<span>Refreshing...</span>
+				{:else}
+					<span>Refresh</span>
+				{/if}
+			</button>
+		</div>
+	</div>
 
 	<!-- System Overview -->
 	<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
