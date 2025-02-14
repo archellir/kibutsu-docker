@@ -39,6 +39,8 @@ export interface SystemInfo {
   memoryUsage: number;
   cpuUsage: number;
   version: string;
+  NCPU: number;
+  MemTotal: number;
 }
 
 export interface DockerError {
