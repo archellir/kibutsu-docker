@@ -182,6 +182,10 @@ export class DockerClient {
   getWebSocketUrl(path: string = '/docker'): string | null {
     return this.wsUrl ? `${this.wsUrl}${path}` : null;
   }
+
+  async removeImage(id: string): Promise<void> {
+    await this.fetch(`/images/${id}`, { method: 'DELETE' });
+  }
 }
 
 // Export singleton instance
