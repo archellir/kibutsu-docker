@@ -78,6 +78,10 @@ export class DockerClient {
     await this.fetch(`/containers/${id}/stop`, { method: 'POST' });
   }
 
+  async restartContainer(id: string): Promise<void> {
+    await this.fetch(`/containers/${id}/restart`, { method: 'POST' });
+  }
+
   // Image operations
   async getImages(): Promise<Image[]> {
     return this.fetch('/images').then(r => r.json());
@@ -135,11 +139,12 @@ export class DockerClient {
   }
 
   // Stream handling
-  async* streamLogs(containerId: string): AsyncGenerator<string> {
-    const response = await this.fetch(`/containers/${containerId}/logs`);
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
+  async* streamLogs(id: string): AsyncGenerator<string> {
+    const response = await this.fetch(`/containers/${id}/logs`);
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('Failed to get log stream');
 
+    const decoder = new TextDecoder();
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;

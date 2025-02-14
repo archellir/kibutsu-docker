@@ -1,9 +1,15 @@
 <script lang="ts">
 	import { containersStore } from '$lib/stores/docker';
+	import { dockerClient } from '$lib/api/client';
+	import ContainerStats from './ContainerStats.svelte';
 	import type { Container } from '$lib/types/docker';
 
 	let searchQuery = '';
 	let view: 'grid' | 'table' = 'table';
+	let selectedContainer: Container | null = null;
+	let showStats = false;
+	let showLogs = false;
+	let logs: string[] = [];
 
 	$: containers = $containersStore.data;
 	$: filteredContainers = containers.filter(
@@ -22,6 +28,39 @@
 				return 'bg-red-400';
 			default:
 				return 'bg-gray-400';
+		}
+	}
+
+	async function handleAction(container: Container, action: 'start' | 'stop' | 'restart') {
+		try {
+			switch (action) {
+				case 'start':
+					await dockerClient.startContainer(container.Id);
+					break;
+				case 'stop':
+					await dockerClient.stopContainer(container.Id);
+					break;
+				case 'restart':
+					await dockerClient.restartContainer(container.Id);
+					break;
+			}
+			await containersStore.refresh(() => dockerClient.getContainers());
+		} catch (error) {
+			console.error(`Failed to ${action} container:`, error);
+		}
+	}
+
+	async function viewLogs(container: Container) {
+		selectedContainer = container;
+		showLogs = true;
+		try {
+			const logStream = dockerClient.streamLogs(container.Id);
+			logs = [];
+			for await (const log of logStream) {
+				logs = [...logs, log];
+			}
+		} catch (error) {
+			console.error('Failed to fetch logs:', error);
 		}
 	}
 </script>
@@ -87,15 +126,39 @@
 							</td>
 							<td class="whitespace-nowrap px-6 py-4">
 								<div class="flex space-x-2">
-									<button class="rounded bg-blue-500 px-2 py-1 text-white hover:bg-blue-600">
-										Details
+									<button
+										class="rounded bg-blue-500 px-2 py-1 text-white hover:bg-blue-600"
+										on:click={() => {
+											selectedContainer = container;
+											showStats = true;
+										}}
+									>
+										Stats
+									</button>
+									<button
+										class="rounded bg-purple-500 px-2 py-1 text-white hover:bg-purple-600"
+										on:click={() => viewLogs(container)}
+									>
+										Logs
 									</button>
 									{#if container.State === 'running'}
-										<button class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600">
+										<button
+											class="rounded bg-yellow-500 px-2 py-1 text-white hover:bg-yellow-600"
+											on:click={() => handleAction(container, 'restart')}
+										>
+											Restart
+										</button>
+										<button
+											class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+											on:click={() => handleAction(container, 'stop')}
+										>
 											Stop
 										</button>
 									{:else}
-										<button class="rounded bg-green-500 px-2 py-1 text-white hover:bg-green-600">
+										<button
+											class="rounded bg-green-500 px-2 py-1 text-white hover:bg-green-600"
+											on:click={() => handleAction(container, 'start')}
+										>
 											Start
 										</button>
 									{/if}
@@ -116,15 +179,39 @@
 							<h3 class="font-medium">{container.Names[0].replace('/', '')}</h3>
 						</div>
 						<div class="flex space-x-2">
-							<button class="rounded bg-blue-500 px-2 py-1 text-white hover:bg-blue-600">
-								Details
+							<button
+								class="rounded bg-blue-500 px-2 py-1 text-white hover:bg-blue-600"
+								on:click={() => {
+									selectedContainer = container;
+									showStats = true;
+								}}
+							>
+								Stats
+							</button>
+							<button
+								class="rounded bg-purple-500 px-2 py-1 text-white hover:bg-purple-600"
+								on:click={() => viewLogs(container)}
+							>
+								Logs
 							</button>
 							{#if container.State === 'running'}
-								<button class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600">
+								<button
+									class="rounded bg-yellow-500 px-2 py-1 text-white hover:bg-yellow-600"
+									on:click={() => handleAction(container, 'restart')}
+								>
+									Restart
+								</button>
+								<button
+									class="rounded bg-red-500 px-2 py-1 text-white hover:bg-red-600"
+									on:click={() => handleAction(container, 'stop')}
+								>
 									Stop
 								</button>
 							{:else}
-								<button class="rounded bg-green-500 px-2 py-1 text-white hover:bg-green-600">
+								<button
+									class="rounded bg-green-500 px-2 py-1 text-white hover:bg-green-600"
+									on:click={() => handleAction(container, 'start')}
+								>
 									Start
 								</button>
 							{/if}
@@ -141,3 +228,54 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Stats Modal -->
+{#if showStats && selectedContainer}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+		<div class="w-3/4 rounded-lg bg-white p-6 dark:bg-gray-800">
+			<div class="mb-4 flex items-center justify-between">
+				<h2 class="text-xl font-bold">
+					Container Stats: {selectedContainer.Names[0].replace('/', '')}
+				</h2>
+				<button
+					class="rounded bg-gray-500 px-2 py-1 text-white hover:bg-gray-600"
+					on:click={() => {
+						showStats = false;
+						selectedContainer = null;
+					}}
+				>
+					Close
+				</button>
+			</div>
+			<ContainerStats containerId={selectedContainer.Id} />
+		</div>
+	</div>
+{/if}
+
+<!-- Logs Modal -->
+{#if showLogs && selectedContainer}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+		<div class="w-3/4 rounded-lg bg-white p-6 dark:bg-gray-800">
+			<div class="mb-4 flex items-center justify-between">
+				<h2 class="text-xl font-bold">
+					Container Logs: {selectedContainer.Names[0].replace('/', '')}
+				</h2>
+				<button
+					class="rounded bg-gray-500 px-2 py-1 text-white hover:bg-gray-600"
+					on:click={() => {
+						showLogs = false;
+						selectedContainer = null;
+						logs = [];
+					}}
+				>
+					Close
+				</button>
+			</div>
+			<div class="h-96 overflow-auto font-mono">
+				{#each logs as log}
+					<div class="whitespace-pre-wrap">{log}</div>
+				{/each}
+			</div>
+		</div>
+	</div>
+{/if}
