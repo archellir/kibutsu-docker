@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -17,6 +19,17 @@ import (
 
 	"kibutsu/api/handlers"
 )
+
+//go:embed frontend/build/*
+var staticFiles embed.FS
+
+func GetFileSystem() http.FileSystem {
+	fsys, err := fs.Sub(staticFiles, "frontend/build")
+	if err != nil {
+		panic(err)
+	}
+	return http.FS(fsys)
+}
 
 type HealthResponse struct {
 	Status    string `json:"status"`

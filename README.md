@@ -77,30 +77,25 @@ go build -o kibutsuapi
 
 ```bash
 cd frontend
+pnpm install
 pnpm dev
 ```
 
-The development server includes:
+### Backend Development
+
+```bash
+go run main.go
+```
+
+### View development
+
+The frontend will be available at `http://localhost:5173` with:
 - Hot module replacement
-- API proxy configuration
+- API proxy to backend
 - TypeScript checking
 - Tailwind CSS processing
 
-### Backend Development
-
-```bash
-cd backend
-go run main.go
-```
-
-### Backend Development
-
-```bash
-cd backend
-go run main.go
-```
-
-Features:
+The backend API will be available at `http://localhost:8080` with:
 - Auto API version negotiation
 - Graceful shutdown
 - Request ID tracking
