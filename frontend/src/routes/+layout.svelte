@@ -19,12 +19,13 @@
 	});
 </script>
 
-<div class="min-h-screen">
-	<NotificationContainer />
-	<Navbar />
-	<div class="flex">
-		<Sidebar />
-		<main class="flex-1 p-8">
+<div class="flex h-screen bg-gray-100 dark:bg-gray-900">
+	<Sidebar />
+
+	<div class="flex flex-1 flex-col overflow-hidden">
+		<Navbar />
+
+		<main class="flex-1 overflow-y-auto p-4">
 			{@render children()}
 		</main>
 	</div>
