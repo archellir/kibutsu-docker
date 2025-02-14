@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store';
-import type { Container, Image, ComposeProject, SystemInfo, DockerError } from '../types/docker';
+import type { Container, Image, ComposeProject, SystemInfo, DockerError, DiskUsage } from '../types/docker';
 import { DockerClient } from '../api/client';
 
 const client = new DockerClient();
@@ -53,6 +53,7 @@ export const containersStore = createLoadingStore<Container[]>();
 export const imagesStore = createLoadingStore<Image[]>();
 export const composeStore = createLoadingStore<ComposeProject[]>();
 export const systemStore = createLoadingStore<SystemInfo>();
+export const diskUsageStore = createLoadingStore<DiskUsage>();
 
 // Error store with history
 export const errorStore = (() => {
@@ -131,7 +132,8 @@ const setupAutoRefresh = () => {
       containersStore.refresh(() => client.getContainers()),
       imagesStore.refresh(() => client.getImages()),
       composeStore.refresh(() => client.getComposeProjects()),
-      systemStore.refresh(() => client.getSystemInfo())
+      systemStore.refresh(() => client.getSystemInfo()),
+      diskUsageStore.refresh(() => client.getDiskUsage())
     ]);
   };
 

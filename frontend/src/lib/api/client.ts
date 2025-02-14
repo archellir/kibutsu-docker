@@ -1,4 +1,4 @@
-import type { Container, Image, ComposeProject, SystemInfo } from '../types/docker';
+import type { Container, Image, ComposeProject, SystemInfo, DiskUsage } from '../types/docker';
 
 const API_BASE = '/api';
 const getWsUrl = () => {
@@ -105,6 +105,10 @@ export class DockerClient {
   // System operations
   async getSystemInfo(): Promise<SystemInfo> {
     return this.fetch('/system/info').then(r => r.json());
+  }
+
+  async getDiskUsage(): Promise<DiskUsage> {
+    return this.fetch('/system/disk').then(r => r.json());
   }
 
   // Base fetch method with error handling

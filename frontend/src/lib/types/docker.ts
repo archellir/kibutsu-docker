@@ -41,10 +41,36 @@ export interface SystemInfo {
   version: string;
   NCPU: number;
   MemTotal: number;
+  operatingSystem: string;
+  architecture: string;
 }
 
 export interface DockerError {
   message: string;
   code: string;
   timestamp: Date;
+}
+
+export interface DiskUsage {
+  layersSize: number;
+  images: ImageDiskUsage[];
+  containers: ContainerDiskUsage[];
+  volumes: VolumeDiskUsage[];
+}
+
+export interface ImageDiskUsage {
+  id: string;
+  size: number;
+  sharedSize: number;
+  uniqueSize: number;
+}
+
+export interface ContainerDiskUsage {
+  id: string;
+  size: number;
+}
+
+export interface VolumeDiskUsage {
+  name: string;
+  size: number;
 } 

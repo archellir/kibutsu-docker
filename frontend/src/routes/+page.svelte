@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { systemStore, containersStore } from '$lib/stores/docker';
+	import { systemStore, containersStore, diskUsageStore } from '$lib/stores/docker';
 	import { formatBytes } from '$lib/utils/format';
 
 	$: systemInfo = $systemStore.data;
@@ -51,6 +51,59 @@
 			<p class="mt-2 text-2xl font-semibold">{systemInfo?.memoryUsage?.toFixed(1) || 0}%</p>
 			<div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
 				{formatBytes(systemInfo?.MemTotal || 0)} Total
+			</div>
+		</div>
+	</div>
+
+	<!-- Disk Usage -->
+	<div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+		{#if $diskUsageStore.data}
+			<div class="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+				<h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Disk Usage</h3>
+				<p class="mt-2 text-2xl font-semibold">
+					{formatBytes($diskUsageStore.data.layersSize || 0)}
+				</p>
+				<div class="mt-4 space-y-2">
+					<div class="flex justify-between text-sm">
+						<span class="text-gray-600 dark:text-gray-400">Images</span>
+						<span>{$diskUsageStore.data.images?.length || 0} items</span>
+					</div>
+					<div class="flex justify-between text-sm">
+						<span class="text-gray-600 dark:text-gray-400">Containers</span>
+						<span>{$diskUsageStore.data.containers?.length || 0} items</span>
+					</div>
+					<div class="flex justify-between text-sm">
+						<span class="text-gray-600 dark:text-gray-400">Volumes</span>
+						<span>{$diskUsageStore.data.volumes?.length || 0} items</span>
+					</div>
+				</div>
+			</div>
+		{:else}
+			<div class="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+				<h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">Disk Usage</h3>
+				<p class="mt-2 text-2xl font-semibold">Loading...</p>
+			</div>
+		{/if}
+
+		<!-- System Health -->
+		<div class="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+			<h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">System Health</h3>
+			<div class="mt-4 space-y-3">
+				<div class="flex items-center justify-between">
+					<span class="text-gray-600 dark:text-gray-400">Status</span>
+					<span class="flex items-center">
+						<div class="mr-2 h-2 w-2 rounded-full bg-green-400"></div>
+						Healthy
+					</span>
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-gray-600 dark:text-gray-400">Version</span>
+					<span>{systemInfo?.version ?? '---'}</span>
+				</div>
+				<div class="flex items-center justify-between">
+					<span class="text-gray-600 dark:text-gray-400">OS/Arch</span>
+					<span>{systemInfo?.operatingSystem ?? '---'}/{systemInfo?.architecture ?? '---'}</span>
+				</div>
 			</div>
 		</div>
 	</div>
