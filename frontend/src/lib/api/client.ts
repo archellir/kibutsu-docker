@@ -102,6 +102,12 @@ export class DockerClient {
     return response.body!;
   }
 
+  async composeDown(project: string): Promise<void> {
+    await this.fetch(`/compose/${project}/down`, {
+      method: 'POST'
+    });
+  }
+
   // System operations
   async getSystemInfo(): Promise<SystemInfo> {
     return this.fetch('/system/info').then(r => r.json());
