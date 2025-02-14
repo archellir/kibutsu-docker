@@ -96,19 +96,27 @@ export class DockerClient {
 
   // Compose operations
   async getComposeProjects(): Promise<ComposeProject[]> {
-    return this.fetch('/compose').then(r => r.json());
+    return this.fetch('/compose/projects').then(r => r.json());
   }
 
   async composeUp(project: string): Promise<ReadableStream> {
-    const response = await this.fetch(`/compose/${project}/up`, {
+    const response = await this.fetch(`/compose/projects/${project}/up`, {
       method: 'POST'
     });
     return response.body!;
   }
 
   async composeDown(project: string): Promise<void> {
-    await this.fetch(`/compose/${project}/down`, {
+    await this.fetch(`/compose/projects/${project}/down`, {
       method: 'POST'
+    });
+  }
+
+  async scaleService(project: string, service: string, replicas: number): Promise<void> {
+    await this.fetch(`/compose/projects/${project}/services/${service}/scale`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ replicas })
     });
   }
 

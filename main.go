@@ -164,6 +164,7 @@ func main() {
 	app := &App{dockerClient: dockerClient}
 	containerHandler := handlers.NewContainerHandler(dockerClient)
 	imageHandler := handlers.NewImageHandler(dockerClient)
+	composeHandler := handlers.NewComposeHandler(dockerClient)
 
 	mux := http.NewServeMux()
 
@@ -221,6 +222,61 @@ func main() {
 		default:
 			http.NotFound(w, r)
 		}
+	})
+
+	// Compose endpoints
+	apiRouter.HandleFunc("/compose/projects/", func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/compose/projects/")
+		parts := strings.Split(path, "/")
+
+		// If no project is specified, list projects.
+		if path == "" || parts[0] == "" {
+			if r.Method == http.MethodGet {
+				composeHandler.ListProjects(w, r)
+				return
+			}
+		}
+
+		// If only the project name is provided, return project details.
+		if len(parts) == 1 {
+			if r.Method == http.MethodGet {
+				composeHandler.GetProject(w, r)
+				return
+			}
+		}
+
+		// Otherwise route based on an action provided in the URL.
+		projectName := parts[0]
+		action := parts[1]
+		log.Printf("Project: %s, Action: %s", projectName, action)
+		switch action {
+		case "up":
+			if r.Method == http.MethodPost {
+				composeHandler.ProjectUp(w, r)
+				return
+			}
+		case "down":
+			if r.Method == http.MethodPost {
+				composeHandler.ProjectDown(w, r)
+				return
+			}
+		case "logs":
+			if r.Method == http.MethodGet {
+				composeHandler.GetProjectLogs(w, r)
+				return
+			}
+		case "services":
+			// GET /compose/projects/{project}/services to list service details.
+			if len(parts) == 2 && r.Method == http.MethodGet {
+				composeHandler.ListServices(w, r)
+				return
+			} else if len(parts) == 4 && parts[3] == "scale" && r.Method == http.MethodPost {
+				// Expected URL: /compose/projects/{project}/services/{service}/scale
+				composeHandler.ScaleService(w, r)
+				return
+			}
+		}
+		http.NotFound(w, r)
 	})
 
 	// Mount API router under /api
